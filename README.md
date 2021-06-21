@@ -1,5 +1,14 @@
 # modnetwork
-how moderators move across reddit
+Use the waybackmachine to extract the roster of subreddit moderators over time. 
+
+## install
+```shell
+git clone git@github.com:hide-ous/modnetwork.git
+cd modnetwork
+python -m venv modnet
+source modnet/bin/activate
+pip install -r requirements.txt
+```
 
 ## run
 ```shell
