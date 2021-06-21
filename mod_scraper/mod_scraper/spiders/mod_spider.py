@@ -55,8 +55,12 @@ def get_subreddits(subreddit_lst_path):
 class RedditSpider(scrapy.Spider):
     name = 'mods'
 
+    def __init__(self, category='', **kwargs):
+        super().__init__(**kwargs)  # python3
+
     def start_requests(self):
-        subreddits = get_subreddits('subreddits.ndjson.zst')
+
+        subreddits = get_subreddits(self.subreddit_file_location)
 
         for subreddit in subreddits:
             yield scrapy.Request('https://www.reddit.com/r/{}/about/moderators'.format(subreddit),
@@ -67,7 +71,7 @@ class RedditSpider(scrapy.Spider):
         for div in response.css('div.moderator-table'):
             for row in div.css('tr'):
                 cur_user = dict()
-                try:
+                try: #TODO: should handle new reddit's code obfuscation; permissions not available
                     cur_user['name'] = row.css('span.user a::text').extract_first()
                     cur_user['karma'] = row.css('span.user b::text').extract_first()
                     cur_user['since'] = row.css('time::attr(datetime)').extract_first()
