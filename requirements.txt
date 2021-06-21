@@ -1,1 +1,7 @@
+requests~=2.25.1
+Scrapy~=2.5.0
+tqdm~=4.61.1
 scrapy-wayback-machine==1.0.3
+pandas~=1.2.4
+itemadapter~=0.2.0
+zstandard~=0.15.2
