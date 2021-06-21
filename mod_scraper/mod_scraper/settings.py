@@ -18,8 +18,8 @@ DOWNLOADER_MIDDLEWARES = {
     'scrapy_wayback_machine.WaybackMachineMiddleware': 50,
 }
 
-# only consider snapshots during the year of 2016
-WAYBACK_MACHINE_TIME_RANGE = (20100101000000, 20200101000000)
+# consider snapshots from 2005 to 2021
+WAYBACK_MACHINE_TIME_RANGE = (20050101000000, 20210101000000)
 
 # be bad but not too bad
 ROBOTSTXT_OBEY = False

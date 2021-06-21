@@ -52,6 +52,11 @@ def get_subreddits(subreddit_lst_path):
     return subreddits.display_name.values.tolist()
 
 
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
 class RedditSpider(scrapy.Spider):
     name = 'mods'
 
@@ -61,7 +66,6 @@ class RedditSpider(scrapy.Spider):
     def start_requests(self):
 
         subreddits = get_subreddits(self.subreddit_file_location)
-
         for subreddit in subreddits:
             yield scrapy.Request('https://www.reddit.com/r/{}/about/moderators'.format(subreddit),
                                  meta={'subreddit': subreddit})
@@ -71,7 +75,7 @@ class RedditSpider(scrapy.Spider):
         for div in response.css('div.moderator-table'):
             for row in div.css('tr'):
                 cur_user = dict()
-                try: #TODO: should handle new reddit's code obfuscation; permissions not available
+                try:
                     cur_user['name'] = row.css('span.user a::text').extract_first()
                     cur_user['karma'] = row.css('span.user b::text').extract_first()
                     cur_user['since'] = row.css('time::attr(datetime)').extract_first()
@@ -80,6 +84,20 @@ class RedditSpider(scrapy.Spider):
                     items.append(cur_user)
                 except:
                     pass
+        # try parsing obfuscated code
+        if len(items) == 0:
+            div = response.xpath("//*[@placeholder='Search for a user']/../following-sibling::*//text()").getall()
+            if len(div):
+                if not len(div) // 3:
+                    print("***ERROR*** can't parse", response.meta['wayback_machine_url'])
+                else:
+                    for name, since, permissions in chunks(div, 3):
+                        cur_user = dict()
+                        cur_user['name'] = name
+                        cur_user['karma'] = None
+                        cur_user['since'] = since
+                        cur_user['permissions'] = permissions
+                        items.append(cur_user)
 
         timestamp = response.meta['wayback_machine_time'].timestamp()
         url = response.meta['wayback_machine_url']
