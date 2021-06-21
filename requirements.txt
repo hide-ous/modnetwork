@@ -1,0 +1,1 @@
+scrapy-wayback-machine==1.0.3
