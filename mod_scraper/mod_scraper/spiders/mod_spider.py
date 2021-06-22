@@ -65,7 +65,7 @@ class RedditSpider(scrapy.Spider):
         super().__init__(**kwargs)
 
     def start_requests(self):
-        subreddits = get_subreddits(self.subreddit_file_location, self.min_subscribers)
+        subreddits = get_subreddits(self.subreddit_file_location, int(self.min_subscribers))
         for subreddit in subreddits:
             yield scrapy.Request('https://www.reddit.com/r/{}/about/moderators'.format(subreddit),
                                  meta={'subreddit': subreddit})
