@@ -43,12 +43,13 @@ def decompress_zst_line(path_in):
                 previous_line = lines[-1]
 
 
-def get_subreddits(subreddit_lst_path):
+def get_subreddits(subreddit_lst_path, min_subscribers=1000):
     if not os.path.exists(subreddit_lst_path):
         download(SUBREDDIT_LIST_URL, subreddit_lst_path)
-    subreddits = pd.DataFrame(map(json.loads, itertools.islice(decompress_zst_line(subreddit_lst_path), 1000)))
+    subreddits = pd.DataFrame(map(json.loads, decompress_zst_line(subreddit_lst_path)))
     subreddits = subreddits[['created_utc', 'display_name', 'subscribers', ]]
     subreddits = subreddits.sort_values('subscribers', ascending=False)
+    subreddits = subreddits[subreddits.subscribers >= min_subscribers]
     return subreddits.display_name.values.tolist()
 
 
@@ -60,12 +61,11 @@ def chunks(lst, n):
 class RedditSpider(scrapy.Spider):
     name = 'mods'
 
-    def __init__(self, category='', **kwargs):
-        super().__init__(**kwargs)  # python3
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def start_requests(self):
-
-        subreddits = get_subreddits(self.subreddit_file_location)
+        subreddits = get_subreddits(self.subreddit_file_location, self.min_subscribers)
         for subreddit in subreddits:
             yield scrapy.Request('https://www.reddit.com/r/{}/about/moderators'.format(subreddit),
                                  meta={'subreddit': subreddit})

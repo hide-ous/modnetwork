@@ -13,5 +13,5 @@ pip install -r requirements.txt
 ## run
 ```shell
 cd mod_scraper
-scrapy crawl mods -o snapshots.jsonlines -a subreddit_file_location=subreddits.json.zst
+scrapy crawl mods -o snapshots.jsonlines -a subreddit_file_location=subreddits.json.zst -a min_subscribers=1000
 ```

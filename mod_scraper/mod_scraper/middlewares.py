@@ -2,11 +2,14 @@
 #
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+from datetime import timezone
 
+import pandas as pd
 from scrapy import signals
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
+from scrapy_wayback_machine import WaybackMachineMiddleware
 
 
 class ModScraperSpiderMiddleware:
@@ -101,3 +104,34 @@ class ModScraperDownloaderMiddleware:
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
+
+
+class SubsampledWaybackMachineMiddleware(WaybackMachineMiddleware):
+    def __init__(self, crawler):
+        super(SubsampledWaybackMachineMiddleware, self).__init__(crawler=crawler)
+        frequency = crawler.settings.get('WAYBACK_MACHINE_FEQUENCY')
+        self.set_frequency(frequency)
+        self.min_snapshots = crawler.settings.get('WAYBACK_MACHINE_MIN_SNAPSHOTS')
+
+    def set_frequency(self, frequency):
+        min_date, max_date = self.time_range
+        self.frequency = frequency
+        self.date_range = pd.date_range(start=min_date * (10 ** 9), end=max_date * (10 ** 9),
+                                        freq=self.frequency, tz='UTC').astype(int) / (10 ** 9)
+
+    def filter_snapshots(self, snapshots):
+        snapshots = super(SubsampledWaybackMachineMiddleware, self).filter_snapshots(snapshots=snapshots)
+        snapshot_dates = pd.DataFrame(map(lambda snapshot: snapshot['datetime'].timestamp(), snapshots))
+        snapshot_dates.columns = ['snapshot_date']
+
+        def closest_date_in_range(snapshot_date):
+            return min(self.date_range, key=lambda x: abs(x - snapshot_date))
+
+        snapshot_dates['closest_date'] = snapshot_dates.snapshot_date.apply(closest_date_in_range)
+        snapshot_dates.drop_duplicates(subset=['closest_date'], keep='first', inplace=True)
+        keep_snapshots = snapshot_dates.index.tolist()
+        snapshots = [snapshots[i] for i in keep_snapshots]
+
+        if len(snapshots) < self.min_snapshots:
+            return []
+        return snapshots
